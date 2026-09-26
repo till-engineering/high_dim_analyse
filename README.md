@@ -180,6 +180,17 @@ python run_tsne.py --perplexity 30 --sweep
 | `--tsne-start` | Startpositionen: `random` (Standard, unabhängig von der PCA, über `--seed` reproduzierbar) oder `pca` (PC1/PC2 als Start) |
 | `--sweep` | Raster mehrerer Perplexity-Werte |
 
+**Gruppen auf der Karte:** `run_umap.py` und `run_tsne.py` verstehen dieselben
+Optionen wie `run_pca.py` (`--cluster`, `--gruppen`, `--min-gruppe`,
+`--stabilitaet`). Gesucht wird direkt auf der 2D-Karte; heraus kommen
+`umap_gruppen.png` / `tsne_gruppen.png` (Karte nach Gruppe), das
+Gruppenprofil `*_gruppenprofil.png` und `*_gruppen.xlsx` mit denselben
+Blättern wie bei der PCA. Das Profil ist bei diesen Verfahren der einzige Weg
+zu sehen, was eine Insel ausmacht - die Kartenachsen selbst sind nicht
+deutbar. Die Gruppennummern der drei Skripte sind unabhängig vergeben;
+„Gruppe 2“ bei UMAP muss nicht „Gruppe 2“ bei PCA sein - für abgeglichene
+Nummern `run_vergleich.py` nehmen.
+
 **Vorsicht beim Lesen von UMAP und t-SNE:** die Achsen haben keine Einheit
 (deshalb sind sie unbeschriftet), die Abstände *zwischen* Clustern bedeuten bei
 t-SNE nichts, und Clustergrößen sind verzerrt. Belastbar ist nur: „diese Punkte
@@ -295,7 +306,8 @@ hda/
   data_io.py     Excel einlesen, Merkmale/Labels trennen, skalieren
   plotstyle.py   Farben, rcParams, Streudiagramm nach Gruppe
   embedding.py   t-SNE-Lauf, gemeinsame Darstellung für UMAP/t-SNE, Trustworthiness
-  cluster.py     Gruppen ohne Labels finden, prüfen, beschreiben, vergleichen
+  cluster.py     Gruppen ohne Labels finden, prüfen, vergleichen
+  gruppen.py     Gruppen beschreiben: Profil, Vertreter, Excel (für alle Verfahren)
   cli.py         gemeinsame Kommandozeilenoptionen
 generate_testdata.py
 cmapss_zu_excel.py   NASA-Triebwerksdaten -> Excel

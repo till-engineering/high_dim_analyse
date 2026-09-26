@@ -30,11 +30,12 @@ def leere_achsen(ax, t: dict, x_label: str, y_label: str) -> None:
 
 
 def einbettung_plot(Y, labels, t, titel: str, unter: str, label_name=None,
-                    quelle: str = "", achsen_praefix: str = "Dimension"):
+                    quelle: str = "", achsen_praefix: str = "Dimension",
+                    neutral: str | None = None):
     """Streudiagramm einer 2D-Einbettung."""
     fig, ax = plt.subplots(figsize=(9.0, 7.2))
     gruppen = scatter_nach_gruppe(ax, Y[:, 0], Y[:, 1], labels, t,
-                                  groesse=46, alpha=0.85)
+                                  groesse=46, alpha=0.85, neutral=neutral)
     leere_achsen(ax, t, achsen_praefix + " 1", achsen_praefix + " 2")
     ax.set_aspect("equal", adjustable="datalim")
     ax.margins(0.08)

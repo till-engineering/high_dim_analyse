@@ -11,12 +11,18 @@ Erzeugt im Ausgabeordner:
   tsne_einbettung.png    die Einbettung
   tsne_perplexity.png    (mit --sweep) dieselben Daten unter mehreren Perplexities
   tsne_koordinaten.xlsx  die 2D-Koordinaten je Datenpunkt
+  mit --cluster zusaetzlich: tsne_gruppen.png, tsne_gruppenprofil.png,
+                             tsne_gruppen.xlsx (Gruppen auf der Karte gesucht)
 
 Aufruf:  python run_tsne.py [--perplexity 30] [--sweep]
 """
 
 from __future__ import annotations
 
+import pandas as pd
+
+from hda import cluster as hc
+from hda import gruppen as hg
 from hda.cli import ausgabeordner, basis_parser, blatt_wert, starte
 from hda.data_io import lade_daten, skaliere
 from hda.embedding import (TSNE_STARTS, einbettung_plot, guete, raster_plot,
@@ -37,6 +43,7 @@ def main() -> None:
                    help="Abstandsmass (euclidean, manhattan, cosine, ...)")
     p.add_argument("--sweep", action="store_true",
                    help="zusaetzlich ein Raster mehrerer Perplexity-Werte")
+    hg.cluster_optionen(p)
     args = p.parse_args()
 
     ds = lade_daten(args.datei, blatt_wert(args.blatt), args.label_spalte,
@@ -88,6 +95,22 @@ def main() -> None:
     ziel = speichere_koordinaten(Y, ds, out / "tsne_koordinaten.xlsx",
                                  ("tSNE_1", "tSNE_2"))
     print("  gespeichert: %s" % ziel)
+
+    if args.cluster != "aus":
+        cl = hc.finde_gruppen_in(Y, args.cluster, args.gruppen, args.min_gruppe,
+                                 args.seed)
+        print("\nGruppen: %s auf der %s-Karte, %s"
+              % (cl.methode.upper(), "t-SNE",
+                 ", ".join("%s=%s" % kv for kv in cl.parameter.items())))
+        namen = hg.beschreibe(cl, Y, ds, t, out, "tsne", "t-SNE",
+                              args.stabilitaet, args.seed, quelle, args.zeigen,
+                              zusatz=pd.DataFrame(Y, columns=["tSNE_1", "tSNE_2"]))
+        if namen is not None:
+            fig = einbettung_plot(Y, namen, t, "t-SNE · gefundene Gruppen", unter,
+                                  "Gruppe", quelle, "t-SNE", neutral=hc.RAUSCHEN)
+            speichere(fig, out / "tsne_gruppen.png")
+            zeige_oder_schliesse(fig, args.zeigen)
+
 
 
 if __name__ == "__main__":

@@ -51,8 +51,8 @@ def befehle(args) -> list[tuple[str, list[str]]]:
     sweep = ["--sweep"] if args.sweep else []
     alle = {
         "pca": ["run_pca.py", *basis, *gruppen, "--paare", "1,2", "1,3"],
-        "umap": ["run_umap.py", *basis, *sweep],
-        "tsne": ["run_tsne.py", *basis, *sweep],
+        "umap": ["run_umap.py", *basis, *sweep, *gruppen],
+        "tsne": ["run_tsne.py", *basis, *sweep, *gruppen],
         "vergleich": ["run_vergleich.py", *basis, *gruppen],
         "streumatrix": ["run_streumatrix.py", *basis, *gruppen],
     }
@@ -65,7 +65,7 @@ def main() -> None:
                    help="nur diese Schritte ausfuehren")
     p.add_argument("--cluster", default="kmeans",
                    choices=["hdbscan", "kmeans", "gmm"],
-                   help="Gruppensuche fuer PCA und Vergleich")
+                   help="Gruppensuche fuer alle Schritte")
     p.add_argument("--gruppen", type=int, default=None,
                    help="feste Gruppenzahl fuer kmeans/gmm (Standard: automatisch)")
     p.add_argument("--sweep", action="store_true",

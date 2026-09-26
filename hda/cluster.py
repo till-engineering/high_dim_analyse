@@ -326,7 +326,7 @@ def zeitraeume(meta: pd.DataFrame, namen) -> pd.DataFrame:
 # Plot
 # --------------------------------------------------------------------------- #
 def profil_heatmap(prof: pd.DataFrame, anzahl: pd.Series, stab: pd.Series, t,
-                   quelle: str = ""):
+                   quelle: str = "", verfahren: str = ""):
     """Gruppen x Messgroessen: wo liegt jede Gruppe ueber, wo unter dem Schnitt?"""
     # Staerkste Unterscheider nach oben - dort faengt man an zu lesen.
     reihenfolge = prof.abs().max(axis=1).sort_values(ascending=False).index
@@ -367,7 +367,8 @@ def profil_heatmap(prof: pd.DataFrame, anzahl: pd.Series, stab: pd.Series, t,
     leiste = fig.colorbar(bild, ax=ax, fraction=0.03, pad=0.02)
     leiste.outline.set_visible(False)
     leiste.set_label("Abweichung vom Gesamtmittel (σ)", color=t["text2"], fontsize=9)
-    kopf(ax, "Was macht die Gruppen aus?",
+    kopf(ax, "Was macht die Gruppen aus?"
+             + (" · Gruppen aus %s" % verfahren if verfahren else ""),
          "rot = ueber dem Schnitt, blau = darunter · J = Stabilitaet "
          "(ab 0.75 belastbar)", t)
     if quelle:

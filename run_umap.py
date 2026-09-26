@@ -13,6 +13,8 @@ Erzeugt im Ausgabeordner:
   umap_einbettung.png    die Einbettung
   umap_parameter.png     (mit --sweep) dieselben Daten unter mehreren Parametern
   umap_koordinaten.xlsx  die 2D-Koordinaten je Datenpunkt
+  mit --cluster zusaetzlich: umap_gruppen.png, umap_gruppenprofil.png,
+                             umap_gruppen.xlsx (Gruppen auf der Karte gesucht)
 
 Aufruf:  python run_umap.py [--nachbarn 15] [--min-dist 0.1] [--sweep]
 """
@@ -21,6 +23,10 @@ from __future__ import annotations
 
 import sys
 
+import pandas as pd
+
+from hda import cluster as hc
+from hda import gruppen as hg
 from hda.cli import ausgabeordner, basis_parser, blatt_wert, starte
 from hda.data_io import lade_daten, skaliere
 from hda.embedding import (einbettung_plot, guete, raster_plot,
@@ -38,6 +44,7 @@ def main() -> None:
                    help="Abstandsmass (euclidean, manhattan, cosine, ...)")
     p.add_argument("--sweep", action="store_true",
                    help="zusaetzlich ein Raster mehrerer Parameterkombinationen")
+    hg.cluster_optionen(p)
     args = p.parse_args()
 
     try:
@@ -96,6 +103,22 @@ def main() -> None:
     ziel = speichere_koordinaten(Y, ds, out / "umap_koordinaten.xlsx",
                                  ("UMAP_1", "UMAP_2"))
     print("  gespeichert: %s" % ziel)
+
+    if args.cluster != "aus":
+        cl = hc.finde_gruppen_in(Y, args.cluster, args.gruppen, args.min_gruppe,
+                                 args.seed)
+        print("\nGruppen: %s auf der %s-Karte, %s"
+              % (cl.methode.upper(), "UMAP",
+                 ", ".join("%s=%s" % kv for kv in cl.parameter.items())))
+        namen = hg.beschreibe(cl, Y, ds, t, out, "umap", "UMAP",
+                              args.stabilitaet, args.seed, quelle, args.zeigen,
+                              zusatz=pd.DataFrame(Y, columns=["UMAP_1", "UMAP_2"]))
+        if namen is not None:
+            fig = einbettung_plot(Y, namen, t, "UMAP · gefundene Gruppen", unter,
+                                  "Gruppe", quelle, "UMAP", neutral=hc.RAUSCHEN)
+            speichere(fig, out / "umap_gruppen.png")
+            zeige_oder_schliesse(fig, args.zeigen)
+
 
 
 if __name__ == "__main__":
