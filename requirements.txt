@@ -1,0 +1,8 @@
+# Python 3.10 - 3.12 (umap-learn/numba unterstuetzt 3.13+ noch nicht zuverlaessig)
+numpy>=1.26
+pandas>=2.1
+openpyxl>=3.1
+scikit-learn>=1.5
+scipy>=1.11
+matplotlib>=3.8
+umap-learn>=0.5.5
