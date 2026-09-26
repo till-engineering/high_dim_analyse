@@ -91,11 +91,21 @@ def raster_plot(einbettungen, labels, t, titel: str, unter: str,
     return fig
 
 
+TSNE_STARTS = ["random", "pca"]
+
+
 def tsne(X, perplexity: float, seed: int, iterationen: int = 1000,
-         metrik: str = "euclidean"):
-    """Ein t-SNE-Lauf. Start ueber PCA, damit das Ergebnis reproduzierbar bleibt."""
+         metrik: str = "euclidean", start: str = "random"):
+    """Ein t-SNE-Lauf.
+
+    ``start`` legt die Ausgangspositionen der Optimierung fest:
+    ``"random"`` = zufaellig (ueber ``seed`` trotzdem reproduzierbar) - die
+    Karte ist damit unabhaengig von der PCA, wichtig fuer den Verfahrens-
+    vergleich. ``"pca"`` = PC1/PC2 als Start - stabiler, aber die grobe
+    Anordnung der Gruppen ist dann von der PCA vorgepraegt.
+    """
     from sklearn.manifold import TSNE
-    return TSNE(n_components=2, perplexity=perplexity, init="pca",
+    return TSNE(n_components=2, perplexity=perplexity, init=start,
                 learning_rate="auto", max_iter=iterationen, metric=metrik,
                 random_state=seed, verbose=0).fit_transform(X)
 

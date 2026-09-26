@@ -200,8 +200,8 @@ def main() -> None:
     if konstant:
         print("  Konstant (entfernt die Analyse automatisch): %s" % ", ".join(konstant))
     print("\nTesten, z. B.:")
-    print('  python run_all.py --datei "%s" --label-spalte Betriebspunkt'
-          % ziel.relative_to(HIER) if ziel.is_relative_to(HIER) else ziel)
+    anzeige = ziel.relative_to(HIER) if ziel.is_relative_to(HIER) else ziel
+    print('  python run_all.py --datei "%s" --label-spalte Betriebspunkt' % anzeige)
     print("  (ohne --label-spalte wird nach 'Zustand' eingefaerbt - die Spalte "
           "mit den wenigsten Werten)")
 

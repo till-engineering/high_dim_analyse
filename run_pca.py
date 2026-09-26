@@ -31,7 +31,7 @@ from matplotlib.colors import LinearSegmentedColormap
 from sklearn.decomposition import PCA
 
 from hda import cluster as hc
-from hda.cli import ausgabeordner, basis_parser, blatt_wert
+from hda.cli import ausgabeordner, basis_parser, blatt_wert, starte
 from hda.data_io import lade_daten, skaliere
 from hda.plotstyle import (gitter, kopf, rahmen, scatter_nach_gruppe, set_style,
                            speichere, zeige_oder_schliesse)
@@ -40,6 +40,14 @@ from hda.plotstyle import (gitter, kopf, rahmen, scatter_nach_gruppe, set_style,
 # --------------------------------------------------------------------------- #
 # Plots
 # --------------------------------------------------------------------------- #
+# Pfeile und ihre Namen im Biplot: schlank, damit sie die Punkte nicht
+# erschlagen. Die Schrift wird mit denselben Werten vermessen und gezeichnet,
+# sonst stimmt die Kollisionspruefung nicht.
+PFEIL_LINIE = 0.9
+PFEIL_SPITZE = 8
+NAME_GROESSE = 8.0
+NAME_GEWICHT = 350        # Segoe UI Semilight; faellt sonst auf "normal" zurueck
+
 def biplot(scores, ladungen, merkmale, labels, t, pc_x, pc_y, varianz,
            n_pfeile=None, label_name=None, quelle="", neutral=None, titel=None):
     """Scores als Punkte, Ladungen als Pfeile - beides im selben Koordinatensystem."""
@@ -68,8 +76,8 @@ def biplot(scores, ladungen, merkmale, labels, t, pc_x, pc_y, varianz,
     for i in reihenfolge:
         dx, dy = L[i, 0] * skala, L[i, 1] * skala
         ax.annotate("", xy=(dx, dy), xytext=(0, 0),
-                    arrowprops=dict(arrowstyle="-|>", mutation_scale=13,
-                                    linewidth=1.5, color=t["text2"],
+                    arrowprops=dict(arrowstyle="-|>", mutation_scale=PFEIL_SPITZE,
+                                    linewidth=PFEIL_LINIE, color=t["text2"],
                                     shrinkA=0, shrinkB=0), zorder=5)
 
     ax.set_xlabel("PC%d  (%.1f %% der Varianz)" % (pc_x + 1, varianz[pc_x] * 100))
@@ -185,7 +193,7 @@ def _setze_namen(ax, zeichner, pfeile, merkmale, reihenfolge, t):
     """Setzt alle Namen und liefert die erzeugten Textelemente zurueck."""
     from matplotlib.font_manager import FontProperties
 
-    schriftart = FontProperties(size=8.8)
+    schriftart = FontProperties(size=NAME_GROESSE, weight=NAME_GEWICHT)
     punkt = ax.figure.dpi / 72.0          # Punkte -> Bildpunkte
     belegt, namen = [], []
 
@@ -236,7 +244,8 @@ def _setze_namen(ax, zeichner, pfeile, merkmale, reihenfolge, t):
             merkmale[i], xy=(dx, dy), xytext=tuple(versatz),
             textcoords="offset points", rotation=schrift,
             rotation_mode="anchor", ha=ha, va="center", color=t["text"],
-            fontsize=8.8, zorder=6, annotation_clip=False,
+            fontsize=NAME_GROESSE, fontweight=NAME_GEWICHT, zorder=6,
+            annotation_clip=False,
             arrowprops=fuehrung,
             bbox=dict(boxstyle="round,pad=0.12", facecolor=t["surface"],
                       edgecolor="none", alpha=0.7)))
@@ -387,6 +396,8 @@ def main() -> None:
     g.add_argument("--stabilitaet", type=int, default=30,
                    help="Teilstichproben fuer die Stabilitaetspruefung (0 = aus)")
     args = p.parse_args()
+    if args.komponenten is not None and args.komponenten < 2:
+        p.error("--komponenten muss mindestens 2 sein (Biplot braucht zwei Achsen)")
 
     ds = lade_daten(args.datei, blatt_wert(args.blatt), args.label_spalte,
                     args.id_spalten, args.nan)
@@ -395,7 +406,7 @@ def main() -> None:
     t = set_style(args.theme)
     quelle = ds.quelle.name if ds.quelle else ""
 
-    k = args.komponenten or min(X.shape)
+    k = min(args.komponenten or min(X.shape), min(X.shape))
     pca = PCA(n_components=k, random_state=args.seed)
     scores = pca.fit_transform(X)
     varianz = pca.explained_variance_ratio_
@@ -615,4 +626,4 @@ def daten_nach_gruppe(writer, ds, namen, reihenfolge, blatt="Daten_nach_Gruppe")
 
 
 if __name__ == "__main__":
-    main()
+    starte(main)

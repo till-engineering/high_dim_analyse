@@ -35,6 +35,25 @@ def basis_parser(beschreibung: str) -> argparse.ArgumentParser:
     return p
 
 
+def starte(main) -> None:
+    """Fuehrt ``main`` aus; Eingabefehler und gesperrte Dateien als Klartext.
+
+    Unter Windows ist die haeufigste Ursache fuer "Permission denied" eine
+    Ergebnisdatei, die noch in Excel offen ist.
+    """
+    import sys
+
+    from .data_io import DatenFehler
+
+    try:
+        main()
+    except DatenFehler as fehler:
+        sys.exit("Fehler: %s" % fehler)
+    except PermissionError as fehler:
+        sys.exit("Fehler: Datei gesperrt - ist sie noch in Excel geoeffnet?\n  %s"
+                 % (fehler.filename or fehler))
+
+
 def blatt_wert(wert):
     """'0' -> 0, 'Messdaten' -> 'Messdaten'."""
     try:

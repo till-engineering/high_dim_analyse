@@ -177,6 +177,7 @@ python run_tsne.py --perplexity 30 --sweep
 |---|---|
 | `-p, --perplexity` | effektive Nachbarzahl, typisch 5–50 (muss < Anzahl Datenpunkte sein) |
 | `--iterationen` | Optimierungsschritte, Standard 1000 |
+| `--tsne-start` | Startpositionen: `random` (Standard, unabhängig von der PCA, über `--seed` reproduzierbar) oder `pca` (PC1/PC2 als Start) |
 | `--sweep` | Raster mehrerer Perplexity-Werte |
 
 **Vorsicht beim Lesen von UMAP und t-SNE:** die Achsen haben keine Einheit
@@ -205,7 +206,7 @@ meint.
 | `--cluster` | `kmeans` (Standard), `hdbscan`, `gmm` — für alle drei gleich |
 | `--gruppen K` | feste Gruppenzahl; ohne Angabe wählt jedes Verfahren selbst (strengerer Test) |
 | `--nachbarn`, `--min-dist` | UMAP; `min-dist` steht hier auf 0.0, das packt Gruppen dicht |
-| `--perplexity` | t-SNE |
+| `--perplexity`, `--tsne-start` | t-SNE |
 
 Ausgabe: `vergleich_ueberschneidung.png` (Kreuztabelle je Verfahrenspaar,
 Übereinstimmung auf der Diagonalen, ARI im Titel), `vergleich_karten.png`
@@ -227,7 +228,9 @@ python run_streumatrix.py --cluster kmeans
 python run_streumatrix.py --spalten Drehzahl_rpm Strom_A Vibration_mm_s
 ```
 
-n × n Felder in Originaleinheiten: Zeile = y-Achse, Spalte = x-Achse. Auf der
+Unteres Dreieck samt Diagonale (gestrichelt), Originaleinheiten: Zeile = y-Achse, Spalte = x-Achse, jedes Feld
+mit winzigen Achsennamen. Der Rahmen zeigt |r| in fünf Stufen (< 0.3 grau,
+dann 0.3 / 0.5 / 0.7 / 0.9 immer dunkleres Rot und dickerer Strich). Auf der
 Diagonalen steht jede Größe gegen sich selbst, die Punkte liegen dort auf einer
 Geraden. Oben links in jedem Feld die Korrelation r (fett ab |r| ≥ 0.8).
 Eingefärbt wird nach der Label-Spalte oder mit `--cluster` nach den Gruppen
@@ -252,6 +255,13 @@ Die Daten sind so gebaut, dass in den Plots etwas zu sehen ist:
 * **Vibration, Körperschall, Schalldruck** bilden eine eigene Richtung, die
   „Lagerschaden" von „Überlast" trennt → zwei getrennte Cluster.
 * **Spannung und Betriebsstunden** sind fast reines Rauschen → kurze Pfeile.
+
+Zum Vergleich erzeugt `python generate_testdata.py --rauschen` die Datei
+`data/rauschen_messdaten.xlsx`: dieselben 15 Messgrößen mit denselben
+Mittelwerten und Streuungen, aber jede Spalte unabhängig gezogen. So sieht es
+aus, wenn es nichts zu finden gibt: flacher Scree-Plot (jede PC ~6–9 %),
+Pfeile in alle Richtungen, Silhouette unter 0.25, Stabilität unter 0.75,
+ARI zwischen den Verfahren um 0.1–0.2.
 
 ## Echte Beispieldaten: NASA C-MAPSS
 

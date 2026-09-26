@@ -21,7 +21,7 @@ from __future__ import annotations
 
 import sys
 
-from hda.cli import ausgabeordner, basis_parser, blatt_wert
+from hda.cli import ausgabeordner, basis_parser, blatt_wert, starte
 from hda.data_io import lade_daten, skaliere
 from hda.embedding import (einbettung_plot, guete, raster_plot,
                            speichere_koordinaten)
@@ -99,4 +99,4 @@ def main() -> None:
 
 
 if __name__ == "__main__":
-    main()
+    starte(main)

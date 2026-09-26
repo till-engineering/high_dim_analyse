@@ -17,9 +17,9 @@ Aufruf:  python run_tsne.py [--perplexity 30] [--sweep]
 
 from __future__ import annotations
 
-from hda.cli import ausgabeordner, basis_parser, blatt_wert
+from hda.cli import ausgabeordner, basis_parser, blatt_wert, starte
 from hda.data_io import lade_daten, skaliere
-from hda.embedding import (einbettung_plot, guete, raster_plot,
+from hda.embedding import (TSNE_STARTS, einbettung_plot, guete, raster_plot,
                            speichere_koordinaten, tsne)
 from hda.plotstyle import set_style, speichere, zeige_oder_schliesse
 
@@ -30,6 +30,9 @@ def main() -> None:
                    help="Perplexity - effektive Anzahl beruecksichtigter Nachbarn")
     p.add_argument("--iterationen", type=int, default=1000,
                    help="Optimierungsschritte (mehr = stabiler, langsamer)")
+    p.add_argument("--tsne-start", default="random", choices=TSNE_STARTS,
+                   help="Startpositionen: random = unabhaengig von der PCA, "
+                        "pca = PC1/PC2 als Start")
     p.add_argument("--metrik", default="euclidean",
                    help="Abstandsmass (euclidean, manhattan, cosine, ...)")
     p.add_argument("--sweep", action="store_true",
@@ -50,16 +53,16 @@ def main() -> None:
         print("  Hinweis : Perplexity auf %.1f begrenzt (nur %d Datenpunkte)"
               % (perplexity, len(X)))
 
-    print("\nt-SNE : perplexity=%.1f, %d Iterationen, Metrik '%s'"
-          % (perplexity, args.iterationen, args.metrik))
-    Y = tsne(X, perplexity, args.seed, args.iterationen, args.metrik)
+    print("\nt-SNE : perplexity=%.1f, %d Iterationen, Metrik '%s', Start '%s'"
+          % (perplexity, args.iterationen, args.metrik, args.tsne_start))
+    Y = tsne(X, perplexity, args.seed, args.iterationen, args.metrik, args.tsne_start)
 
     q = guete(X, Y)
     print("        Trustworthiness: %.3f  (1.0 = Nachbarschaften vollstaendig erhalten)" % q)
 
-    unter = ("Perplexity = %.0f · %d Iterationen · Trustworthiness %.2f · "
+    unter = ("Perplexity = %.0f · %d Iterationen · Start %s · Trustworthiness %.2f · "
              "Achsen ohne Einheit, Abstaende zwischen Clustern nicht deutbar"
-             % (perplexity, args.iterationen, q))
+             % (perplexity, args.iterationen, args.tsne_start, q))
 
     print("\nPlots:")
     fig = einbettung_plot(Y, ds.labels, t, "t-SNE-Einbettung", unter,
@@ -74,7 +77,8 @@ def main() -> None:
         for w in werte:
             print("        Sweep: perplexity=%d" % w)
             laeufe.append(("Perplexity = %d" % w,
-                           tsne(X, float(w), args.seed, args.iterationen, args.metrik)))
+                           tsne(X, float(w), args.seed, args.iterationen, args.metrik,
+                                args.tsne_start)))
         fig = raster_plot(laeufe, ds.labels, t, "t-SNE unter verschiedenen Perplexities",
                           "Was bei jeder Einstellung zusammenbleibt, ist echte Struktur",
                           ds.label_name, quelle)
@@ -87,4 +91,4 @@ def main() -> None:
 
 
 if __name__ == "__main__":
-    main()
+    starte(main)

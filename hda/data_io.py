@@ -14,6 +14,14 @@ import numpy as np
 import pandas as pd
 
 
+class DatenFehler(Exception):
+    """Etwas an der Eingabedatei oder den Spaltenangaben passt nicht.
+
+    Wird von :func:`hda.cli.starte` als kurze Meldung ausgegeben statt als
+    Traceback - der Fehler liegt dann in der Eingabe, nicht im Programm.
+    """
+
+
 @dataclass
 class Datensatz:
     """Ergebnis von :func:`lade_daten`."""
@@ -50,7 +58,7 @@ def finde_excel(ordner: str | Path = "data") -> Path:
         reverse=True,
     )
     if not treffer:
-        raise FileNotFoundError(
+        raise DatenFehler(
             f"Keine Excel-Datei in '{ordner}' gefunden. "
             "Mit 'python generate_testdata.py' laesst sich eine Beispieldatei erzeugen."
         )
@@ -104,21 +112,24 @@ def lade_daten(pfad: str | Path | None = None, blatt: str | int = 0,
     df = df.dropna(axis=0, how="all").dropna(axis=1, how="all")
 
     ausschluss = set(id_spalten or [])
+    unbekannt = sorted(ausschluss - set(df.columns))
+    if unbekannt:
+        # Ein Tippfehler hier wuerde sonst still ignoriert, und die Spalte
+        # liefe weiter als Messgroesse mit.
+        raise DatenFehler(f"--id-spalten: unbekannte Spalte(n) {', '.join(unbekannt)}. "
+                          f"Vorhanden: {', '.join(df.columns)}")
     num = [c for c in df.columns
            if pd.api.types.is_numeric_dtype(df[c]) and c not in ausschluss]
     text = [c for c in df.columns if c not in num]
 
     if label_spalte is not None:
         if label_spalte not in df.columns:
-            raise KeyError(f"Spalte '{label_spalte}' existiert nicht. "
-                           f"Vorhanden: {', '.join(df.columns)}")
+            raise DatenFehler(f"--label-spalte: Spalte '{label_spalte}' existiert "
+                              f"nicht. Vorhanden: {', '.join(df.columns)}")
         num = [c for c in num if c != label_spalte]
         text = [c for c in df.columns if c not in num]
     elif text:
         label_spalte = _waehle_label(df, text)
-
-    if len(num) < 2:
-        raise ValueError(f"Mindestens 2 numerische Spalten noetig, gefunden: {num}")
 
     X = df[num].copy()
     if nan == "drop":
@@ -134,12 +145,24 @@ def lade_daten(pfad: str | Path | None = None, blatt: str | int = 0,
     konstant = [c for c in X.columns if np.isclose(X[c].std(ddof=0), 0.0)]
     if konstant:
         X = X.drop(columns=konstant)
+    # Erst nach dem Entfernen pruefen - sonst scheitert es spaeter irgendwo
+    # in der PCA mit einem unverstaendlichen Indexfehler.
+    if X.shape[1] < 2:
+        raise DatenFehler(f"Mindestens 2 veraenderliche Zahlenspalten noetig, "
+                          f"gefunden: {list(X.columns) or 'keine'}"
+                          + (f" (konstant entfernt: {', '.join(konstant)})" if konstant else ""))
+    if len(X) < 3:
+        raise DatenFehler(f"Zu wenige Zeilen ({len(X)}) fuer eine Analyse")
 
-    labels = df[label_spalte].astype(str) if label_spalte else None
+    # Leere Zellen der Gruppenspalte als eigene, lesbare Gruppe statt "nan"
+    labels = (df[label_spalte].astype(object).where(df[label_spalte].notna(), "(leer)")
+              .astype(str) if label_spalte else None)
     # Kopfzeile ist Excel-Zeile 1, Index 0 also Zeile 2 - so bleibt jede Zeile
     # nach dem Verwerfen von Luecken bis in die Originaldatei zurueckverfolgbar.
     zeilen = pd.Series(df.index + 2, name="Excel_Zeile")
-    meta = df[[c for c in text if c != label_spalte]] if text else pd.DataFrame()
+    # Auch ohne Textspalten ein DataFrame mit den Zeilen - sonst scheitert
+    # spaeter jedes pd.concat mit den Zeilennummern.
+    meta = df[[c for c in text if c != label_spalte]]
 
     ds = Datensatz(X=X.reset_index(drop=True),
                    labels=labels.reset_index(drop=True) if labels is not None else None,

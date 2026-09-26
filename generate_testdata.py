@@ -13,7 +13,13 @@ erzaehlen haben:
 * Spannung und Betriebsstunden sind weitgehend unabhaengiges Rauschen
   -> kurze Pfeile, wenig Erklaerungsbeitrag.
 
+Mit --rauschen entsteht stattdessen eine Vergleichsdatei aus reinem Rauschen:
+dieselben 15 Messgroessen mit denselben Mittelwerten und Streuungen, aber
+jede Spalte unabhaengig gezogen - keine Zusammenhaenge, keine Gruppen. So
+sieht man, wie die Plots aussehen, wenn es nichts zu finden gibt.
+
 Aufruf:  python generate_testdata.py [--zeilen 300] [--seed 42]
+         python generate_testdata.py --rauschen
 """
 
 from __future__ import annotations
@@ -100,6 +106,24 @@ def erzeuge(zeilen: int = 300, seed: int = 42) -> pd.DataFrame:
     return df
 
 
+def erzeuge_rauschen(zeilen: int = 300, seed: int = 42) -> pd.DataFrame:
+    """Gleiche Spalten, Mittelwerte und Streuungen wie :func:`erzeuge` - ohne Struktur.
+
+    Jede Messgroesse ist unabhaengig normalverteilt. Mittelwert und Streuung
+    stammen aus den strukturierten Daten, damit Einheiten und Groessenordnungen
+    identisch sind und nur die Zusammenhaenge fehlen.
+    """
+    vorlage = erzeuge(zeilen, seed)
+    rng = np.random.default_rng(seed + 1)
+    messgroessen = vorlage.columns[2:]
+    df = pd.DataFrame({
+        spalte: rng.normal(vorlage[spalte].mean(), vorlage[spalte].std(), len(vorlage))
+        for spalte in messgroessen
+    }).round(3)
+    df.insert(0, "Pruefling_ID", [f"R-{i + 1:04d}" for i in range(len(df))])
+    return df
+
+
 def schreibe(df: pd.DataFrame, pfad: Path) -> Path:
     pfad.parent.mkdir(parents=True, exist_ok=True)
     from openpyxl.styles import Font
@@ -121,12 +145,23 @@ def main() -> None:
         formatter_class=argparse.ArgumentDefaultsHelpFormatter)
     p.add_argument("--zeilen", type=int, default=300, help="Anzahl Datenpunkte")
     p.add_argument("--seed", type=int, default=42, help="Zufallsstartwert")
-    p.add_argument("--out", default="data/beispiel_messdaten.xlsx",
-                   help="Zieldatei")
+    p.add_argument("--rauschen", action="store_true",
+                   help="reines Rauschen statt strukturierter Daten")
+    p.add_argument("--out", default=None,
+                   help="Zieldatei (Standard: data/beispiel_messdaten.xlsx bzw. "
+                        "data/rauschen_messdaten.xlsx)")
     args = p.parse_args()
 
+    if args.rauschen:
+        df = erzeuge_rauschen(args.zeilen, args.seed)
+        ziel = schreibe(df, Path(args.out or "data/rauschen_messdaten.xlsx"))
+        print(f"Geschrieben: {ziel}")
+        print(f"  {len(df)} Zeilen, 15 Messgroessen aus unabhaengigem Rauschen + ID")
+        print("  Keine Gruppen, keine Zusammenhaenge - jede gefundene Struktur ist Zufall.")
+        return
+
     df = erzeuge(args.zeilen, args.seed)
-    ziel = schreibe(df, Path(args.out))
+    ziel = schreibe(df, Path(args.out or "data/beispiel_messdaten.xlsx"))
 
     print(f"Geschrieben: {ziel}")
     print(f"  {len(df)} Zeilen, {len(df.columns)} Spalten "

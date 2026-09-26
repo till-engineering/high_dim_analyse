@@ -25,9 +25,9 @@ from matplotlib.colors import LinearSegmentedColormap
 from sklearn.decomposition import PCA
 
 from hda import cluster as hc
-from hda.cli import ausgabeordner, basis_parser, blatt_wert
+from hda.cli import ausgabeordner, basis_parser, blatt_wert, starte
 from hda.data_io import lade_daten, skaliere
-from hda.embedding import leere_achsen, tsne
+from hda.embedding import TSNE_STARTS, leere_achsen, tsne
 from hda.plotstyle import (rahmen, scatter_nach_gruppe, set_style, speichere,
                            zeige_oder_schliesse)
 
@@ -177,6 +177,9 @@ def main() -> None:
     p.add_argument("--min-dist", type=float, default=0.0,
                    help="UMAP min_dist; 0.0 packt Gruppen dicht - gut fuers Clustern")
     p.add_argument("--perplexity", type=float, default=30.0, help="t-SNE Perplexity")
+    p.add_argument("--tsne-start", default="random", choices=TSNE_STARTS,
+                   help="t-SNE-Startpositionen; random haelt t-SNE unabhaengig "
+                        "von der PCA - der ehrlichere Vergleich")
     args = p.parse_args()
 
     ds = lade_daten(args.datei, blatt_wert(args.blatt), args.label_spalte,
@@ -204,9 +207,10 @@ def main() -> None:
     except ImportError:
         print("  Hinweis : umap-learn fehlt - Vergleich nur PCA gegen t-SNE")
     perplexity = min(args.perplexity, max(5.0, (len(X) - 1) / 3.0))
-    Y = tsne(X, perplexity, args.seed)
+    Y = tsne(X, perplexity, args.seed, start=args.tsne_start)
     darstellungen["t-SNE"] = (Y, Y, ("t-SNE 1", "t-SNE 2"),
-                              "t-SNE · Perplexity %.0f" % perplexity)
+                              "t-SNE · Perplexity %.0f · Start %s"
+                              % (perplexity, args.tsne_start))
 
     # ---- In jeder Darstellung unabhaengig Gruppen suchen ----------------- #
     print("\nGruppen: %s in jeder Darstellung unabhaengig" % args.cluster.upper())
@@ -286,4 +290,4 @@ def main() -> None:
 
 
 if __name__ == "__main__":
-    main()
+    starte(main)
