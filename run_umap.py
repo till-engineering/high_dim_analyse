@@ -27,7 +27,7 @@ import pandas as pd
 
 from hda import cluster as hc
 from hda import gruppen as hg
-from hda.cli import ausgabeordner, basis_parser, blatt_wert, starte
+from hda.cli import ausgabeordner, basis_parser, blatt_wert, lies_argumente, starte
 from hda.data_io import lade_daten, skaliere
 from hda.embedding import (einbettung_plot, guete, raster_plot,
                            speichere_koordinaten)
@@ -45,7 +45,7 @@ def main() -> None:
     p.add_argument("--sweep", action="store_true",
                    help="zusaetzlich ein Raster mehrerer Parameterkombinationen")
     hg.cluster_optionen(p)
-    args = p.parse_args()
+    args = lies_argumente(p, "umap")
 
     try:
         import umap
@@ -71,7 +71,7 @@ def main() -> None:
                         random_state=args.seed)
     Y = reducer.fit_transform(X)
 
-    q = guete(X, Y)
+    q = guete(X, Y, metrik=args.metrik)
     print("        Trustworthiness: %.3f  (1.0 = Nachbarschaften vollstaendig erhalten)" % q)
 
     unter = ("n_neighbors = %d · min_dist = %.2f · Metrik %s · "

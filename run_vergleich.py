@@ -25,7 +25,7 @@ from matplotlib.colors import LinearSegmentedColormap
 from sklearn.decomposition import PCA
 
 from hda import cluster as hc
-from hda.cli import ausgabeordner, basis_parser, blatt_wert, starte
+from hda.cli import ausgabeordner, basis_parser, blatt_wert, lies_argumente, starte
 from hda.data_io import lade_daten, skaliere
 from hda.embedding import TSNE_STARTS, leere_achsen, tsne
 from hda.plotstyle import (rahmen, scatter_nach_gruppe, set_style, speichere,
@@ -163,8 +163,10 @@ def karten_plot(darstellungen, namen, nummern, t, quelle=""):
 # --------------------------------------------------------------------------- #
 def main() -> None:
     p = basis_parser("Gruppen unter PCA, UMAP und t-SNE finden und vergleichen.")
-    p.add_argument("--cluster", default="kmeans", choices=["hdbscan", "kmeans", "gmm"],
-                   help="Verfahren zur Gruppensuche, fuer alle Darstellungen gleich")
+    p.add_argument("--cluster", default="kmeans",
+                   choices=["aus", "hdbscan", "kmeans", "gmm"],
+                   help="Verfahren zur Gruppensuche, fuer alle Darstellungen gleich "
+                        "('aus' gibt es hier nicht - dann kmeans)")
     p.add_argument("--gruppen", type=int, default=None,
                    help="feste Gruppenzahl fuer kmeans/gmm; ohne Angabe waehlt "
                         "jedes Verfahren selbst - der strengere Test")
@@ -180,7 +182,11 @@ def main() -> None:
     p.add_argument("--tsne-start", default="random", choices=TSNE_STARTS,
                    help="t-SNE-Startpositionen; random haelt t-SNE unabhaengig "
                         "von der PCA - der ehrlichere Vergleich")
-    args = p.parse_args()
+    args = lies_argumente(p, "vergleich")
+    if args.cluster == "aus":
+        # Kommt aus [gruppen] der Konfiguration; ohne Gruppen gibt es nichts zu vergleichen.
+        print("  Hinweis : cluster = aus - der Vergleich braucht Gruppen, nimmt kmeans")
+        args.cluster = "kmeans"
 
     ds = lade_daten(args.datei, blatt_wert(args.blatt), args.label_spalte,
                     args.id_spalten, args.nan)

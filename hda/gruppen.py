@@ -35,6 +35,11 @@ def zeige_auswahl(cl: hc.Clustering) -> None:
     if cl.auswahl["Silhouette"].max() < 0.25:
         print("         Achtung: Silhouette ueberall unter 0.25 - die Daten "
               "zerfallen nicht klar in Gruppen, die Aufteilung ist willkuerlich.")
+    if cl.parameter["k"] == cl.auswahl["Gruppen"].max():
+        # Am Rand des Suchbereichs ist das Optimum nicht gefunden, nur abgeschnitten.
+        print("         Achtung: gewaehlt ist die groesste gepruefte Gruppenzahl - "
+              "die Kennzahl steigt noch, die Zahl ist nicht bestimmt, nur begrenzt. "
+              "Mit --gruppen fest vorgeben.")
 
 
 def beschreibe(cl: hc.Clustering, Z, ds, t, out: Path, praefix: str, verfahren: str,
@@ -96,6 +101,12 @@ def beschreibe(cl: hc.Clustering, Z, ds, t, out: Path, praefix: str, verfahren: 
     if (stab < 0.6).any():
         print("\n  Achtung: Gruppen mit Stabilitaet unter 0.6 sind vermutlich "
               "Artefakte des Verfahrens - nicht interpretieren.")
+    if verfahren in ("UMAP", "t-SNE") and not stab.empty:
+        # Neu geclustert wird nur auf der fertigen Karte; die Karte selbst
+        # wird nicht neu gerechnet. Deren Zufall steckt also nicht im Wert.
+        print("\n  Hinweis: Die Stabilitaet prueft die Gruppensuche auf dieser einen "
+              "%s-Karte, nicht die Karte selbst - sie faellt eher zu guenstig aus. "
+              "Gegenprobe: --sweep bzw. run_vergleich.py." % verfahren)
 
     # ---- Profil-Heatmap -------------------------------------------------- #
     print()

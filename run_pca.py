@@ -32,7 +32,7 @@ from sklearn.decomposition import PCA
 
 from hda import cluster as hc
 from hda import gruppen as hg
-from hda.cli import ausgabeordner, basis_parser, blatt_wert, starte
+from hda.cli import ausgabeordner, basis_parser, blatt_wert, lies_argumente, starte
 from hda.data_io import lade_daten, skaliere
 from hda.plotstyle import (gitter, kopf, rahmen, scatter_nach_gruppe, set_style,
                            speichere, zeige_oder_schliesse)
@@ -386,7 +386,7 @@ def main() -> None:
     p.add_argument("--cluster-varianz", type=float, default=0.9,
                    help="auf so vielen PCs clustern, wie fuer diesen "
                         "Varianzanteil noetig sind")
-    args = p.parse_args()
+    args = lies_argumente(p, "pca")
     if args.komponenten is not None and args.komponenten < 2:
         p.error("--komponenten muss mindestens 2 sein (Biplot braucht zwei Achsen)")
 

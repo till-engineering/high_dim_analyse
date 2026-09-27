@@ -124,12 +124,13 @@ def speichere_koordinaten(Y, ds, pfad: Path, spaltennamen=("Dim_1", "Dim_2")) ->
     return pfad
 
 
-def guete(X, Y, n_nachbarn: int = 12) -> float:
+def guete(X, Y, n_nachbarn: int = 12, metrik: str = "euclidean") -> float:
     """Trustworthiness: Anteil erhaltener Nachbarschaften (1.0 = perfekt).
 
     Grob: ab etwa 0.9 sind die sichtbaren Gruppen belastbar, darunter sollte
-    man den Plot vorsichtig lesen.
+    man den Plot vorsichtig lesen. ``metrik`` muss die der Einbettung sein -
+    sonst wird gegen Nachbarschaften gemessen, die die Methode nie gesehen hat.
     """
     from sklearn.manifold import trustworthiness
     n_nachbarn = min(n_nachbarn, (len(X) - 1) // 2)
-    return float(trustworthiness(X, Y, n_neighbors=max(2, n_nachbarn)))
+    return float(trustworthiness(X, Y, n_neighbors=max(2, n_nachbarn), metric=metrik))

@@ -75,6 +75,32 @@ Ergebnistabellen landen in `output/`.
 | `--theme` | `light` (Standard) oder `dark` |
 | `--zeigen` | Fenster öffnen statt nur speichern |
 | `--seed` | Zufallsstartwert |
+| `-c, --config` | Konfigurationsdatei, Standard `config.toml`; `keine` = ohne |
+
+### Konfigurationsdatei `config.toml`
+
+Statt alles auf der Kommandozeile anzugeben, stehen Eingabedatei,
+Ausgabeordner und **alle** Parameter in `config.toml` im Projektordner. Jedes
+Skript liest sie automatisch, `python run_all.py` genügt dann. Die Datei ist
+kommentiert; Abschnitte:
+
+| Abschnitt | gilt für |
+|---|---|
+| `[allgemein]` | alle Skripte: `datei`, `out`, `label_spalte`, `skalierung`, ... |
+| `[gruppen]` | Gruppensuche in PCA, UMAP, t-SNE, Vergleich, Streumatrix |
+| `[ablauf]` | nur `run_all.py`: `nur`, `testdaten`, `sweep` |
+| `[pca]`, `[umap]`, `[tsne]`, `[vergleich]`, `[streumatrix]` | das jeweilige Skript |
+
+Die Schlüssel heißen wie die Optionen, mit `_` statt `-` (`min_dist` ↔
+`--min-dist`). `""` oder `"auto"` heißt Programm-Standard. Windows-Pfade in
+einfache Anführungszeichen setzen (`datei = 'E:\Daten\x.xlsx'`); relative
+Pfade gelten ab dem Ordner der Konfigurationsdatei. Die Kommandozeile hat
+Vorrang: `python run_pca.py --cluster hdbscan` sticht den Eintrag in der Datei.
+Tippfehler bei Abschnitten, Schlüsseln oder Werten brechen mit einer Meldung
+ab, statt still ignoriert zu werden.
+
+Mehrere Datensätze: je eine Datei anlegen und mit
+`python run_all.py --config legierungen.toml` auswählen.
 
 Die Standardisierung ist kein Detail: ohne sie dominiert schlicht die Spalte
 mit den größten Zahlen (Drehzahl in rpm schlägt Vibration in mm/s um drei
@@ -249,6 +275,40 @@ aus der PCA. `--spalten` wählt Größen aus (ab etwa 20 wird es eng),
 `--max-punkte` begrenzt die gezeichneten Zeilen (Standard 3000).
 Ausgabe: `streumatrix.png`.
 
+### `run_konstanz.py` — nur eine Größe ändert sich
+
+```powershell
+python run_konstanz.py
+python run_konstanz.py --toleranz 0.05 --spalten Drehzahl_rpm Temperatur_C Vibration_mm_s
+python run_konstanz.py --paar Drehzahl_rpm Vibration_mm_s
+```
+
+Wie die Streumatrix, aber Feld (x, y) zeigt nur **Serien**: Zeilen, in denen
+sich außer x und y nichts ändert. In der normalen Streumatrix ändern sich in
+jedem Feld alle anderen Größen mit; hier ist die Steigung einer Serie der
+Einfluss von x auf y bei sonst gleichen Bedingungen. Grau im Hintergrund alle
+Zeilen, farbig und nach x verbunden die Serien.
+
+| Option | Wirkung |
+|---|---|
+| `--toleranz` | „konstant“ = Unterschied höchstens so viele Standardabweichungen (Standard 0.1, `0` = exakt gleich) |
+| `--min-punkte` | kleinste Serie (Standard 3) |
+| `--anteile` | `auto` (Standard): erkennt Zeilensumme 100; dann gelten die übrigen Größen als konstant, wenn sie im **gleichen Verhältnis** bleiben, und nur Zeilen mit y > 0 zählen |
+| `--spalten` | nur diese Größen zeigen (gesucht wird mit allen) |
+| `--max-groessen` | ohne `--spalten`: die N Größen mit den meisten Serien (Standard 12) |
+| `--paar X Y` | zusätzlich dieses Feld groß, mit Legende und Excel-Zeilen |
+
+Ausgabe: `konstanz_matrix.png`, mit `--paar` `konstanz_<x>_<y>.png`, und
+`konstanz_serien.xlsx` (Blätter **Uebersicht** je Feld mit Median-Steigung,
+**Serien** mit Steigung, r und Excel-Zeilen, **Punkte**). Steigung nur, wenn sich x über die Toleranz hinaus ändert, r nur, wenn sich x und y ändern — sonst wäre es Rauschen geteilt durch Rauschen.
+
+Serien findet nur, wer Versuchsreihen in den Daten hat — bei frei gestreuten
+Messungen bleibt fast alles leer (dann `--toleranz` erhöhen). Zwei Faktoren
+gegeneinander haben keine Serien, solange sich die Messgröße mitändert: auch
+sie zählt zu „allen anderen“. Bei Anteilen (Masse-%) ist die Steigung zwischen
+zwei Elementen großenteils Rechnung, und werden x und y unabhängig variiert
+(z. B. AlₓCoCrFeNiᵧ), springt die nach x verbundene Linie im Zickzack.
+
 ## Testdaten
 
 `generate_testdata.py` erzeugt einen simulierten Antriebsprüfstand: 15
@@ -266,6 +326,21 @@ Die Daten sind so gebaut, dass in den Plots etwas zu sehen ist:
 * **Vibration, Körperschall, Schalldruck** bilden eine eigene Richtung, die
   „Lagerschaden" von „Überlast" trennt → zwei getrennte Cluster.
 * **Spannung und Betriebsstunden** sind fast reines Rauschen → kurze Pfeile.
+
+Dazu kommen 36 Zeilen **Messreihen** für `run_konstanz.py`, in denen sich nur
+eine Ursache ändert und alles andere nur um die Messgenauigkeit streut:
+
+| Messreihe | ändert sich | sichtbar im Feld |
+|---|---|---|
+| Dauerlauf A, B: Lager beginnt zu schädigen (je 7 Punkte, alle 500 h) | Betriebsstunden, Körperschall steigt beschleunigt | Betriebsstunden × Körperschall |
+| Dauerlauf C: gesund (7 Punkte) | nur Betriebsstunden — Gegenprobe, flache Linie | Betriebsstunden × jede Größe |
+| Spannungsreihe Teillast, Nennlast, Überlast (je 5 Punkte, 380–420 V) | Spannung, Strom sinkt mit 1/U | Spannung × Strom |
+
+Die freien 300 Betriebspunkte sind mit und ohne Messreihen dieselben.
+`--ohne-messreihen` lässt sie weg; `--ohne-labels` schiebt `Betriebszustand`
+und `Messreihe` auf ein zweites Blatt „Zuordnung“, das die Analyse nicht liest
+— zum Testen der Gruppensuche ohne Vorwissen. `data/beispiel_messdaten.xlsx`
+ist mit `python generate_testdata.py --ohne-labels` erzeugt.
 
 Zum Vergleich erzeugt `python generate_testdata.py --rauschen` die Datei
 `data/rauschen_messdaten.xlsx`: dieselben 15 Messgrößen mit denselben
@@ -311,8 +386,11 @@ hda/
   cli.py         gemeinsame Kommandozeilenoptionen
 generate_testdata.py
 cmapss_zu_excel.py   NASA-Triebwerksdaten -> Excel
+legierungen_zu_excel.py   Legierungsdatenbank (CSV) -> Excel mit Masse-% je Element
+config.toml      Eingabe, Ausgabe und alle Parameter
 run_all.py       alle Schritte nacheinander
 run_pca.py  run_umap.py  run_tsne.py  run_vergleich.py  run_streumatrix.py
+run_konstanz.py  Streumatrix nur mit Serien, in denen alles andere konstant bleibt
 data/    Eingabe-Excel
 output/  Plots und Ergebnistabellen
 ```

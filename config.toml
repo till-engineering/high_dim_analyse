@@ -1,0 +1,98 @@
+# Konfiguration fuer alle Analyse-Skripte (run_all.py, run_pca.py, run_umap.py,
+# run_tsne.py, run_vergleich.py, run_streumatrix.py, run_konstanz.py).
+#
+# Wird automatisch gelesen, wenn sie als config.toml im Projektordner liegt.
+# Andere Datei:      python run_all.py --config meine_config.toml
+# Ohne diese Datei:  python run_all.py --config keine
+#
+# Reihenfolge, das Spaetere gewinnt:
+#   Programm-Standard < [allgemein] < [gruppen] < [pca]/[umap]/... < Kommandozeile
+# Also z. B.  python run_pca.py --cluster hdbscan  sticht den Wert hier.
+#
+# Schreibweise (TOML):
+#   * Pfade in einfachen Anfuehrungszeichen, dann gehen auch Windows-Backslashes:
+#       datei = 'E:\Messungen\Versuch 3.xlsx'
+#     Relative Pfade gelten ab dem Ordner dieser Datei.
+#   * ""  oder "auto"  = Programm-Standard / automatisch waehlen
+#   * Listen:  ["A", "B"]      Ja/Nein:  true / false
+#   * Zeile mit # am Anfang wird ignoriert.
+#
+# Dieselben Namen gibt es als Kommandozeilen-Option: min_dist <-> --min-dist.
+
+
+[allgemein]
+# Eingabe
+datei = 'data/bsp_1.xlsx'   # "" = neueste Excel in data/
+blatt = 0                          # Tabellenblatt: Nummer (0 = erstes) oder Name
+label_spalte = ""                  # Spalte zum Einfaerben; "" = Textspalte mit den wenigsten Werten
+id_spalten = []                    # Zahlenspalten, die keine Messgroessen sind, z. B. ["Seriennummer"]
+nan = "median"                     # fehlende Werte: median (ersetzen) | drop (Zeile verwerfen)
+
+# Ausgabe
+out = 'output'         # Ordner fuer Bilder und Excel-Ergebnisse
+theme = "light"                    # light | dark
+zeigen = false                     # true = Plotfenster oeffnen statt nur speichern
+
+# Rechnung
+skalierung = "zscore"              # zscore | minmax | robust | keine
+seed = 42                          # Zufallsstartwert - gleicher Wert, gleiches Ergebnis
+
+
+[gruppen]
+# Gruppensuche ohne Vorwissen - gilt fuer PCA, UMAP, t-SNE, Vergleich, Streumatrix.
+cluster = "kmeans"                 # aus | hdbscan | kmeans | gmm
+gruppen = "auto"                   # feste Gruppenzahl fuer kmeans/gmm, z. B. 4; auto = per Silhouette/BIC
+min_gruppe = "auto"                # hdbscan: kleinste Gruppe; auto = max(5, Zeilen/50)
+stabilitaet = 30                   # Teilstichproben fuer die Stabilitaetspruefung (0 = aus)
+cluster_varianz = 0.9              # PCA: auf so vielen PCs clustern, wie fuer 90 % Varianz noetig
+
+
+[ablauf]
+# Nur fuer run_all.py
+nur = ["pca", "umap", "tsne", "vergleich", "streumatrix", "konstanz"]   # welche Schritte laufen
+testdaten = false                  # true = vorher data/beispiel_messdaten.xlsx neu erzeugen
+sweep = false                      # true = UMAP und t-SNE mit Parameterraster (erzwingt es fuer beide)
+
+
+[pca]
+komponenten = "auto"               # Anzahl berechneter Hauptkomponenten; auto = alle
+pfeile = "auto"                    # nur die N laengsten Pfeile zeichnen; auto = alle
+paare = ["1,2", "1,3"]             # gezeichnete Komponentenpaare, z. B. ["1,2", "1,3", "2,3"]
+
+
+[umap]
+nachbarn = 15                      # n_neighbors: klein = lokale Struktur, gross = globale
+min_dist = 0.1                     # 0.0-0.1 kompakte Cluster, 0.5-0.9 gleichmaessig verteilt
+metrik = "euclidean"               # euclidean | manhattan | cosine | ...
+sweep = false                      # zusaetzlich Raster mehrerer Einstellungen
+
+
+[tsne]
+perplexity = 30.0                  # effektive Nachbarzahl, typisch 5-50
+iterationen = 1000                 # Optimierungsschritte
+tsne_start = "random"              # random | pca
+metrik = "euclidean"               # euclidean | manhattan | cosine | ...
+sweep = false                      # zusaetzlich Raster mehrerer Perplexity-Werte
+
+
+[vergleich]
+# Eigene Einstellungen fuer die Karten im Vergleich (unabhaengig von [umap]/[tsne]).
+nachbarn = 15                      # UMAP n_neighbors
+min_dist = 0.0                     # UMAP min_dist; 0.0 packt Gruppen dicht - gut fuers Clustern
+perplexity = 30.0                  # t-SNE Perplexity
+tsne_start = "random"              # random | pca
+
+
+[streumatrix]
+spalten = "auto"                   # nur diese Messgroessen zeigen, z. B. ["Cr_Masse%", "Ni_Masse%"]; auto = alle
+max_punkte = 3000                  # bei mehr Zeilen eine Zufallsauswahl zeichnen
+
+
+[konstanz]
+# Streumatrix nur mit Zeilen, in denen sich ausser x und y nichts aendert.
+toleranz = 0.1                     # "konstant" = Unterschied hoechstens 0.1 Standardabweichungen; 0 = exakt gleich
+min_punkte = 3                     # kleinste Serie
+anteile = "auto"                   # ja = Groessen sind Anteile (Summe 100): uebrige im gleichen Verhaeltnis; auto = erkennen
+spalten = "auto"                   # nur diese Groessen zeigen, z. B. ["Al_Masse%", "Ni_Masse%", "Co_Masse%"]
+max_groessen = 12                  # ohne spalten: so viele Groessen mit den meisten Serien zeigen
+paar = "auto"                      # ein Feld gross zeichnen, z. B. ["Al_Masse%", "Ni_Masse%"]; auto = keins

@@ -23,7 +23,7 @@ import pandas as pd
 
 from hda import cluster as hc
 from hda import gruppen as hg
-from hda.cli import ausgabeordner, basis_parser, blatt_wert, starte
+from hda.cli import ausgabeordner, basis_parser, blatt_wert, lies_argumente, starte
 from hda.data_io import lade_daten, skaliere
 from hda.embedding import (TSNE_STARTS, einbettung_plot, guete, raster_plot,
                            speichere_koordinaten, tsne)
@@ -44,7 +44,7 @@ def main() -> None:
     p.add_argument("--sweep", action="store_true",
                    help="zusaetzlich ein Raster mehrerer Perplexity-Werte")
     hg.cluster_optionen(p)
-    args = p.parse_args()
+    args = lies_argumente(p, "tsne")
 
     ds = lade_daten(args.datei, blatt_wert(args.blatt), args.label_spalte,
                     args.id_spalten, args.nan)
@@ -64,7 +64,7 @@ def main() -> None:
           % (perplexity, args.iterationen, args.metrik, args.tsne_start))
     Y = tsne(X, perplexity, args.seed, args.iterationen, args.metrik, args.tsne_start)
 
-    q = guete(X, Y)
+    q = guete(X, Y, metrik=args.metrik)
     print("        Trustworthiness: %.3f  (1.0 = Nachbarschaften vollstaendig erhalten)" % q)
 
     unter = ("Perplexity = %.0f · %d Iterationen · Start %s · Trustworthiness %.2f · "

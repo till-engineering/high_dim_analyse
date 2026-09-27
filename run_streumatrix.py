@@ -31,7 +31,7 @@ from matplotlib.colors import BoundaryNorm, ListedColormap
 from sklearn.decomposition import PCA
 
 from hda import cluster as hc
-from hda.cli import ausgabeordner, basis_parser, blatt_wert, starte
+from hda.cli import ausgabeordner, basis_parser, blatt_wert, lies_argumente, starte
 from hda.data_io import lade_daten, skaliere
 from hda.plotstyle import (rahmen, scatter_nach_gruppe, set_style, speichere,
                            zeige_oder_schliesse)
@@ -184,9 +184,14 @@ def main() -> None:
                    help="nach gefundenen Gruppen einfaerben statt nach der Label-Spalte")
     p.add_argument("--gruppen", type=int, default=None,
                    help="feste Gruppenzahl fuer kmeans/gmm (Standard: automatisch)")
+    p.add_argument("--min-gruppe", type=int, default=None,
+                   help="hdbscan: kleinste Gruppe (Standard: max(5, n/50))")
+    p.add_argument("--cluster-varianz", type=float, default=0.9,
+                   help="auf so vielen PCs clustern, wie fuer diesen "
+                        "Varianzanteil noetig sind")
     p.add_argument("--max-punkte", type=int, default=3000,
                    help="bei mehr Zeilen eine Zufallsauswahl zeichnen (Lesbarkeit, Tempo)")
-    args = p.parse_args()
+    args = lies_argumente(p, "streumatrix")
 
     ds = lade_daten(args.datei, blatt_wert(args.blatt), args.label_spalte,
                     args.id_spalten, args.nan)
@@ -210,7 +215,8 @@ def main() -> None:
         pca = PCA(random_state=args.seed)
         scores = pca.fit_transform(Z)
         cl = hc.finde_gruppen(scores, pca.explained_variance_ratio_, args.cluster,
-                              args.gruppen, seed=args.seed)
+                              args.gruppen, args.min_gruppe, args.cluster_varianz,
+                              args.seed)
         labels, label_name, neutral = cl.namen, "Gruppe", hc.RAUSCHEN
         print("\nGruppen: %s, %d Gruppen" % (args.cluster.upper(), len(cl.gruppen)))
 

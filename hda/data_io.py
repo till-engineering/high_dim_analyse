@@ -99,6 +99,7 @@ def lade_daten(pfad: str | Path | None = None, blatt: str | int = 0,
 
     # Spalten, die als Text eingelesen wurden, aber Zahlen enthalten, retten
     # (z. B. "1,23" aus einer deutschen Excel-Einstellung).
+    verworfen = {}
     for spalte in df.columns:
         # Nicht auf dtype == object pruefen: neuere pandas-Versionen lesen
         # Textspalten als eigenen 'str'-Typ ein.
@@ -107,6 +108,11 @@ def lade_daten(pfad: str | Path | None = None, blatt: str | int = 0,
                 df[spalte].astype(str).str.replace(",", ".", regex=False).str.strip(),
                 errors="coerce")
             if versuch.notna().mean() > 0.9:
+                # Eintraege wie "<0.5" oder "n.b." werden dabei zu Luecken -
+                # das muss sichtbar sein, sonst fuellt sie still der Median.
+                weg = df[spalte].notna() & versuch.isna()
+                if weg.any():
+                    verworfen[spalte] = sorted(set(df.loc[weg, spalte].astype(str)))[:3]
                 df[spalte] = versuch
 
     df = df.dropna(axis=0, how="all").dropna(axis=1, how="all")
@@ -174,6 +180,9 @@ def lade_daten(pfad: str | Path | None = None, blatt: str | int = 0,
         print(f"Datensatz : {ds}")
         if konstant:
             print(f"  Hinweis : konstante Spalten entfernt: {', '.join(konstant)}")
+        for spalte, beispiele in verworfen.items():
+            print(f"  Hinweis : '{spalte}': Text wie {', '.join(map(repr, beispiele))} "
+                  f"nicht als Zahl lesbar - als Luecke behandelt ({nan})")
         if verloren:
             print(f"  Hinweis : {verloren} Zeilen mit Luecken verworfen")
     return ds
