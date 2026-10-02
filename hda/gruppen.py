@@ -159,29 +159,24 @@ def beschreibe(cl: hc.Clustering, Z, ds, t, out: Path, praefix: str, verfahren: 
     return namen
 
 
-def daten_nach_gruppe(writer, ds, namen, reihenfolge, blatt="Daten_nach_Gruppe"):
-    """Alle Rohdaten, Gruppe fuer Gruppe untereinander - zum direkten Durchsehen.
+def daten_nach_gruppe(writer, ds, namen, reihenfolge):
+    """Alle Rohdaten, jede Gruppe auf einem eigenen Blatt - zum direkten Durchsehen.
 
     Die Werte stehen so da wie in der Eingabedatei (Luecken bleiben leer), mit
     allen Spalten in Originalreihenfolge und der Excel-Zeile vorneweg.
+    Blattname = Gruppenname (Excel erlaubt hoechstens 31 Zeichen).
     """
-    from openpyxl.styles import Font
     from openpyxl.utils import get_column_letter
 
     roh = pd.concat([ds.zeilen, ds.roh], axis=1)
-    zeile = 0
     for g in reihenfolge:
-        teil = roh[namen == g]
-        pd.DataFrame([["%s  (n=%d)" % (g, len(teil))]]).to_excel(
-            writer, sheet_name=blatt, startrow=zeile, index=False, header=False)
-        teil.to_excel(writer, sheet_name=blatt, startrow=zeile + 1, index=False)
+        blatt = str(g)[:31]
+        roh[namen == g].to_excel(writer, sheet_name=blatt, index=False)
         blattobj = writer.sheets[blatt]
-        blattobj.cell(row=zeile + 1, column=1).font = Font(bold=True, size=12)
-        zeile += len(teil) + 4        # Titel + Kopfzeile + Daten + 2 Leerzeilen
-
-    # Spaltenbreite grob nach dem laengsten Kopf, sonst ist alles abgeschnitten.
-    for i, spalte in enumerate(roh.columns, start=1):
-        blattobj.column_dimensions[get_column_letter(i)].width = max(10, len(str(spalte)) + 2)
+        blattobj.freeze_panes = "A2"
+        # Spaltenbreite grob nach dem laengsten Kopf, sonst ist alles abgeschnitten.
+        for i, spalte in enumerate(roh.columns, start=1):
+            blattobj.column_dimensions[get_column_letter(i)].width = max(10, len(str(spalte)) + 2)
 
 
 def cluster_optionen(p) -> None:

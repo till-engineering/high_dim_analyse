@@ -122,7 +122,9 @@ python run_pca.py --pfeile 10 --paare 1,2 1,3
 | `--paare` | Komponentenpaare, z. B. `1,2 1,3 2,3` |
 
 Ausgabe: `pca_biplot_PC1_PC2.png`, `pca_scree.png`, `pca_ladungen.png`,
-`pca_ergebnis.xlsx` (Varianz, Ladungen, Scores).
+`pca_ergebnis.xlsx` (Varianz, Ladungen, Scores und je Komponentenpaar ein Blatt
+`Pfeile_PC1_PC2` mit Start- und Endpunkt jedes Pfeils in Plot-Koordinaten — zum
+Nachbauen des Biplots in Excel).
 
 **Die Pfeile lesen.** Jeder Pfeil ist der Ladungsvektor einer Messgröße:
 
@@ -167,8 +169,8 @@ Ausgabe: `pca_gruppen_PC1_PC2.png` (Biplot nach gefundener Gruppe),
   Gruppe, Messwerten und Scores; zum Abgleich mit Informationen, die nicht in
   der Datei stehen (Charge, Umbau, Schicht …)
 * **Vertreter** — je Gruppe die 5 typischsten Zeilen und die 5 Grenzfälle
-* **Daten_nach_Gruppe** — alle Rohdaten mit allen Spalten, Gruppe für Gruppe
-  untereinander (Lücken bleiben leer, keine Median-Füllung)
+* **ein Blatt je Gruppe** (z. B. „Gruppe 1“, „ohne Gruppe“) — alle Rohdaten
+  dieser Gruppe mit allen Spalten (Lücken bleiben leer, keine Median-Füllung)
 * **Profil_sigma** / **Profil_Median** — Abweichung in σ bzw. Mediane in Originaleinheiten
 * **Kreuztabellen** — Gruppen gegen vorhandene Textspalten mit Cramér V
   (1 = deckungsgleich); Datumsspalten erscheinen als Zeitraum je Gruppe

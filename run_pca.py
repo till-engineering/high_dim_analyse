@@ -4,7 +4,8 @@ Erzeugt im Ausgabeordner:
   pca_biplot_PC1_PC2.png  Streudiagramm der Datenpunkte + Pfeile der Messgroessen
   pca_scree.png           erklaerte Varianz je Komponente (einzeln und kumuliert)
   pca_ladungen.png        Ladungsmatrix als Heatmap
-  pca_ergebnis.xlsx       Scores, Ladungen und Varianzanteile als Tabelle
+  pca_ergebnis.xlsx       Scores, Ladungen und Varianzanteile als Tabelle,
+                          je Biplot die Pfeile als Start-/Endpunkt (Pfeile_PCx_PCy)
 
 Mit --cluster zusaetzlich (fuer Daten ohne bekannte Gruppen):
   pca_gruppen_PC1_PC2.png Biplot, eingefaerbt nach den gefundenen Gruppen
@@ -49,6 +50,43 @@ PFEIL_SPITZE = 8
 NAME_GROESSE = 8.0
 NAME_GEWICHT = 350        # Segoe UI Semilight; faellt sonst auf "normal" zurueck
 
+def pfeil_skala(scores, ladungen, pc_x, pc_y):
+    """Faktor, mit dem die Ladungen auf die Punktwolke gestreckt werden.
+
+    Ein gemeinsamer Faktor fuer beide Achsen, sonst waeren die Winkel
+    zwischen den Pfeilen verfaelscht.
+    """
+    laenge = np.hypot(ladungen[:, pc_x], ladungen[:, pc_y])
+    reichweite = np.abs(scores[:, [pc_x, pc_y]]).max()
+    return 0.80 * reichweite / max(laenge.max(), 1e-12)
+
+
+def pfeil_tabelle(scores, ladungen, merkmale, pc_x, pc_y, n_pfeile=None):
+    """Die Pfeile eines Biplots als Start-/Endpunkt in Plot-Koordinaten.
+
+    Sortiert wie im Plot (laengster zuerst); ``Gezeichnet`` sagt, ob der
+    Pfeil bei --pfeile mit im Bild ist.
+    """
+    skala = pfeil_skala(scores, ladungen, pc_x, pc_y)
+    L = ladungen[:, [pc_x, pc_y]]
+    laenge = np.hypot(L[:, 0], L[:, 1])
+    reihenfolge = np.argsort(laenge)[::-1]
+    sx, sy = "PC%d" % (pc_x + 1), "PC%d" % (pc_y + 1)
+    df = pd.DataFrame({
+        "Merkmal": np.asarray(merkmale)[reihenfolge],
+        "Start_" + sx: 0.0,
+        "Start_" + sy: 0.0,
+        "Ende_" + sx: L[reihenfolge, 0] * skala,
+        "Ende_" + sy: L[reihenfolge, 1] * skala,
+        "Ladung_" + sx: L[reihenfolge, 0],
+        "Ladung_" + sy: L[reihenfolge, 1],
+        "Laenge_Ladung": laenge[reihenfolge],
+        "Skala": skala,
+        "Gezeichnet": [n_pfeile is None or r < n_pfeile for r in range(len(reihenfolge))],
+    })
+    return df
+
+
 def biplot(scores, ladungen, merkmale, labels, t, pc_x, pc_y, varianz,
            n_pfeile=None, label_name=None, quelle="", neutral=None, titel=None):
     """Scores als Punkte, Ladungen als Pfeile - beides im selben Koordinatensystem."""
@@ -63,12 +101,10 @@ def biplot(scores, ladungen, merkmale, labels, t, pc_x, pc_y, varianz,
     ax.axhline(0, color=t["grid"], linewidth=1.0, zorder=1)
     ax.axvline(0, color=t["grid"], linewidth=1.0, zorder=1)
 
-    # Pfeile auf die Punktwolke skalieren. Ein gemeinsamer Faktor fuer beide
-    # Achsen, sonst waeren die Winkel zwischen den Pfeilen verfaelscht.
+    # Pfeile auf die Punktwolke skalieren (gleicher Faktor wie in der Excel).
     L = ladungen[:, [pc_x, pc_y]]
     laenge = np.hypot(L[:, 0], L[:, 1])
-    reichweite = np.abs(np.column_stack([x, y])).max()
-    skala = 0.80 * reichweite / max(laenge.max(), 1e-12)
+    skala = pfeil_skala(scores, ladungen, pc_x, pc_y)
 
     reihenfolge = np.argsort(laenge)[::-1]
     if n_pfeile:
@@ -444,6 +480,10 @@ def main() -> None:
         df_varianz.to_excel(writer, sheet_name="Varianz", index=False)
         df_ladungen.to_excel(writer, sheet_name="Ladungen")
         df_scores.to_excel(writer, sheet_name="Scores", index=False)
+        # Je Biplot die Pfeile als zwei Punkte - zum Nachbauen in Excel.
+        for a, b in paare:
+            pfeil_tabelle(scores, ladungen, ds.merkmale, a, b, args.pfeile).to_excel(
+                writer, sheet_name="Pfeile_PC%d_PC%d" % (a + 1, b + 1), index=False)
     print("  gespeichert: %s" % ziel)
 
     if args.cluster != "aus":

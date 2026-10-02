@@ -22,7 +22,7 @@
 
 [allgemein]
 # Eingabe
-datei = 'data/bsp_1.xlsx'   # "" = neueste Excel in data/
+datei = 'data/hydraulik_zustand.xlsx'   # "" = neueste Excel in data/
 blatt = 0                          # Tabellenblatt: Nummer (0 = erstes) oder Name
 label_spalte = ""                  # Spalte zum Einfaerben; "" = Textspalte mit den wenigsten Werten
 id_spalten = []                    # Zahlenspalten, die keine Messgroessen sind, z. B. ["Seriennummer"]
